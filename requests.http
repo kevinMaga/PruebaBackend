@@ -1,0 +1,169 @@
+
+@baseUrl = http://localhost:8000/api
+
+### ----------------------------------------------------------------
+### Healthcheck
+### ----------------------------------------------------------------
+GET {{baseUrl}}/health/
+
+### CLIENTES
+### ===================================================================
+
+### Crear cliente
+POST {{baseUrl}}/clientes/
+Content-Type: application/json
+
+{
+  "identificacion": "0903369387",
+  "razon_social": "Juan Perez",
+  "email": "juan@test.com",
+  "celular": "0991234567"
+}
+
+### Crear un segundo cliente (para pruebas de líneas/rubros)
+POST {{baseUrl}}/clientes/
+Content-Type: application/json
+
+{
+  "identificacion": "0992988061001",
+  "razon_social": "Empresa SA",
+  "email": "contacto@empresa.com"
+}
+
+### Listar clientes
+GET {{baseUrl}}/clientes/
+
+### Listar clientes filtrando por identificación
+GET {{baseUrl}}/clientes/?identificacion=0903369387
+
+### Listar clientes filtrando por razón social
+GET {{baseUrl}}/clientes/?razon_social=Juan
+
+### Detalle de cliente (reemplaza 1 por el id real)
+GET {{baseUrl}}/clientes/1/
+
+### Actualización parcial de cliente
+PATCH {{baseUrl}}/clientes/1/
+Content-Type: application/json
+
+{
+  "celular": "0987654321"
+}
+
+### Eliminación lógica de cliente (is_active=False, no borra físicamente)
+DELETE {{baseUrl}}/clientes/1/
+
+
+### LINEAS DE SERVICIO
+### ===================================================================
+
+### Crear línea de servicio (reemplaza "cliente": 1 por un id real y activo)
+POST {{baseUrl}}/lineas/
+Content-Type: application/json
+
+{
+  "cliente": 1,
+  "linea_numero": 1,
+  "estado_linea": "ACTIVO",
+  "fecha_instalacion": "2026-01-15"
+}
+
+### Intentar crear línea duplicada (mismo cliente + linea_numero) -> debe dar 400
+POST {{baseUrl}}/lineas/
+Content-Type: application/json
+
+{
+  "cliente": 1,
+  "linea_numero": 1,
+  "estado_linea": "ACTIVO"
+}
+
+### Listar líneas
+GET {{baseUrl}}/lineas/
+
+### Listar líneas filtrando por cliente
+GET {{baseUrl}}/lineas/?cliente_id=1
+
+### Listar líneas filtrando por estado
+GET {{baseUrl}}/lineas/?estado_linea=ACTIVO
+
+### Detalle de línea
+GET {{baseUrl}}/lineas/1/
+
+### Actualización parcial de línea
+PATCH {{baseUrl}}/lineas/1/
+Content-Type: application/json
+
+{
+  "estado_linea": "SUSPENDIDO"
+}
+
+### Eliminación lógica de línea
+DELETE {{baseUrl}}/lineas/1/
+
+### Endpoint bonus: resumen de cobranza de una línea
+GET {{baseUrl}}/lineas/1/estado-cobranza/
+
+
+### RUBROS (cargos de cobranza)
+### ===================================================================
+
+### Crear rubro VENCIDO (para forzar morosidad y probar la tarea de Celery)
+POST {{baseUrl}}/rubros/
+Content-Type: application/json
+
+{
+  "linea_servicio": 1,
+  "valor_total": 50.00,
+  "estado_rubro": "NO_PAGADO",
+  "fecha_emision": "2026-05-01T00:00:00Z",
+  "fecha_vencimiento": "2026-06-01T00:00:00Z"
+}
+
+### Crear rubro NO vencido (no debería afectar saldo ni suspender)
+POST {{baseUrl}}/rubros/
+Content-Type: application/json
+
+{
+  "linea_servicio": 1,
+  "valor_total": 30.00,
+  "estado_rubro": "NO_PAGADO",
+  "fecha_emision": "2026-06-15T00:00:00Z",
+  "fecha_vencimiento": "2026-07-15T00:00:00Z"
+}
+
+### Listar rubros
+GET {{baseUrl}}/rubros/
+
+### Listar rubros filtrando por línea y estado
+GET {{baseUrl}}/rubros/?linea_servicio=1&estado_rubro=NO_PAGADO
+
+### Detalle de rubro
+GET {{baseUrl}}/rubros/1/
+
+### Marcar rubro como pagado (para probar reactivación de la línea tras correr la tarea)
+PATCH {{baseUrl}}/rubros/1/
+Content-Type: application/json
+
+{
+  "estado_rubro": "PAGADO",
+  "fecha_pago": "2026-06-20T10:00:00Z"
+}
+
+### Eliminar rubro
+DELETE {{baseUrl}}/rubros/1/
+
+### FLUJO COMPLETO
+### ===================================================================
+### 1. Crear cliente (POST /clientes/)
+### 2. Crear línea ACTIVO para ese cliente (POST /lineas/)
+### 3. Crear un rubro VENCIDO para esa línea (POST /rubros/)
+### 4. Esperar a que corra la tarea de Celery Beat (cada 5 min) o ejecutarla manual:
+###      docker compose exec web python manage.py shell -c
+###      "from billing.tasks import run_collections_check; run_collections_check()"
+### 5. Verificar que la línea quedó SUSPENDIDO y saldo_vencido > 0:
+###      GET /lineas/{id}/
+### 6. Ver el log de la ejecución y el resumen:
+###      GET /lineas/{id}/estado-cobranza/
+### 7. Marcar el rubro como PAGADO (PATCH /rubros/{id}/)
+### 8. Volver a correr la tarea -> la línea debe reactivarse a ACTIVO

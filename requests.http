@@ -14,7 +14,7 @@ POST {{baseUrl}}/clientes/
 Content-Type: application/json
 
 {
-  "identificacion": "0903369387",
+  "identificacion": "0903369389",
   "razon_social": "Juan Perez",
   "email": "juan@test.com",
   "celular": "0991234567"
@@ -25,7 +25,7 @@ POST {{baseUrl}}/clientes/
 Content-Type: application/json
 
 {
-  "identificacion": "0992988061001",
+  "identificacion": "0992988061002",
   "razon_social": "Empresa SA",
   "email": "contacto@empresa.com"
 }
@@ -62,7 +62,7 @@ POST {{baseUrl}}/lineas/
 Content-Type: application/json
 
 {
-  "cliente": 1,
+  "cliente": 12,
   "linea_numero": 1,
   "estado_linea": "ACTIVO",
   "fecha_instalacion": "2026-01-15"
@@ -113,7 +113,7 @@ POST {{baseUrl}}/rubros/
 Content-Type: application/json
 
 {
-  "linea_servicio": 1,
+  "linea_servicio": 2,
   "valor_total": 50.00,
   "estado_rubro": "NO_PAGADO",
   "fecha_emision": "2026-05-01T00:00:00Z",

@@ -1,5 +1,7 @@
 # ISP Backend — Gestión de Clientes, Líneas y Cobranza
 
+🎥 **Video demostrativo**: https://drive.google.com/file/d/1Kz0IJl-JXn8mkzuCrc9_AfDdi4i-2wqn/view?usp=drive_link
+
 Mini-servicio REST (Django + DRF) con proceso asíncrono y periódico (Celery + Celery Beat)
 de control de morosidad sobre líneas de servicio.
 
